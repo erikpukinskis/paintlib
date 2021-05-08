@@ -12,18 +12,7 @@ library.using([
     var baseBridge = new BrowserBridge()
     basicStyles.addTo(baseBridge)
 
-    var input = element(
-      "input",{
-      "type": "text",
-      "placeholder": "artist name"})
-
-    var data = JSON.parse(fs.readFileSync('./test.json'))
-
-    var imageObjects = data.value.map(function(data) {
-      return {
-        url: data.contentUrl,
-        width: data.width,
-        height: data.height }})
+    var imageObjects = []
 
     var FullScreenTopBarLayout = element.template.container(
       "div.layout",
@@ -65,6 +54,9 @@ library.using([
           FullScreenTopBarLayout,
           body]))
 
+    makeRequest.defineOn(
+      baseBridge)
+
     site.addRoute(
       "get",
       "/",
@@ -88,6 +80,8 @@ library.using([
               imageDb.index++
             } else if (direction == -1) {
               imageDb.index--
+            } else if (direction == 0) {
+              imageDb.index = 0
             }
             var div = document.getElementById(
               "selected-image")
@@ -135,15 +129,70 @@ library.using([
               .evalable()},
             ">")])
 
-        bridge.domReady(loadImage)
+        bridge.domReady(loadImage.withArgs(0))
+
+        var loadArtist = bridge.defineFunction([
+          makeRequest.defineOn(
+            baseBridge),
+          imageDb,
+          loadImage],
+          function loadArtist(makeRequest, imageDb, loadImage, event) {
+            event.preventDefault()
+            var artistName = event.target.name.value
+            var path = "/painter/"+encodeURIComponent(artistName)
+            makeRequest({
+              "method": "get",
+              "path": path},
+              function(data) {
+                imageDb.images = JSON.parse(data)
+                loadImage(0)})})
+
+        var form = element(
+          "form",{
+            "onsubmit": loadArtist.withArgs(bridge.event).evalable()},
+          element(
+            "input",{
+            "type": "text",
+            "name": "name",
+            "placeholder": "artist name"}))
 
         bridge.send(
           FullScreenTopBarLayout([
             element(
               "div",{
               style: "padding: 0 10px 10px 10px"},
-              input),
+              form),
             lightbox]))})
+
+
+    site.addRoute(
+      "get",
+      "/painter/:name",
+      function(request, response) {
+        var painterName = request.params.name.replace(/[^a-zA-Z ]+/g, "").toLowerCase()
+
+        var filename = "painters/"+painterName+".json"
+
+        if (!fs.existsSync(filename)) {
+          console.log("not loaded yet.")
+          response.send("no")
+          return
+        }
+
+        console.log("lets get", request.params.name)
+
+        var data = JSON.parse(
+          fs.readFileSync(
+            filename))
+
+        var imageObjects = data.value.map(function(data) {
+          return {
+            url: data.contentUrl,
+            width: data.width,
+            height: data.height }})
+
+        response.send(
+          imageObjects)})
 
     site.start(
       2090)

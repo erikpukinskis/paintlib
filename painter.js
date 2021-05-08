@@ -171,35 +171,38 @@ library.using([
       function(request, response) {
         var painterName = request.params.name.replace(/[^a-zA-Z ]+/g, "").toLowerCase()
 
+        getPainterData(
+          painterName,
+          function(data) {
+            var imageObjects = data.value.map(function(data) {
+                return {
+                  url: data.contentUrl,
+                  width: data.width,
+                  height: data.height }})
+            response.send(
+              imageObjects)})})
+
+    function getPainterData(painterName, callback) {
         var filename = "painters/"+painterName+".json"
 
         if (!fs.existsSync(filename)) {
-          console.log("not loaded yet.")
-          response.send("no")
-          return
-        }
-
-        console.log("lets get", request.params.name)
+          fetchPainterImages(painterName, callback)
+          return }
 
         var data = JSON.parse(
           fs.readFileSync(
             filename))
 
-        var imageObjects = data.value.map(function(data) {
-          return {
-            url: data.contentUrl,
-            width: data.width,
-            height: data.height }})
+        console.log("loaded "+filename)
 
-        response.send(
-          imageObjects)})
+        callback(data)}
 
     site.start(
       2090)
 
     // fetchPainterImages("cy gavin")
 
-    function fetchPainterImages(painterName) {
+    function fetchPainterImages(painterName, callback) {
       var url = "https://api.bing.microsoft.com/v7.0/images/search?"+buildQueryString({
         q: painterName+" painting",
         count: 150,
@@ -215,13 +218,20 @@ library.using([
         headers: {
           "Ocp-Apim-Subscription-Key": process.env.BING_SEARCH_API_SUBSCRIPTION_KEY,
           "Accept": "application/json"}},
-        savePainterImages)
-    }
+        function(json) {
+          var data = JSON.parse(
+              json)
+          var formatted = JSON.stringify(
+            data,
+            null,
+            4)
+          var filename = "painters/"+painterName+".json"
+          fs.writeFileSync(
+            filename,
+            formatted)
+          console.log("wrote "+filename)
+          callback(data)})}
 
-    function savePainterImages(json) {
-      console.log(json)
-      fs.writeFileSync('./test.json', JSON.stringify(JSON.parse(json), null, 4))
-    }
 
     function buildQueryString(obj) {
       var str = [];

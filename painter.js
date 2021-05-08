@@ -23,21 +23,40 @@ library.using([
       return data.contentUrl
     })
 
+    var FullScreenTopBarLayout = element.template.container(
+      "div.layout",
+      element.style({
+        "display": "flex",
+        "height": "100vh",
+        "flex-direction": "column",
+        "> div:first-child": {
+          "flex-shrink": "0"},
+        "> div:last-child": {
+          "flex-grow": "1"}}))
+
     var Lightbox = element.template.container(
-      ".lightbox",
+      "div.lightbox",
       element.style({
         "display": "flex",
         "flex-direction": "row",
         " button": {
           "flex-shrink": "0"},
-        " .image-container": {
-          "position": "relative",
-          "flex-grow": "1"},
-        " img": {
-          "max-width": "100%"}}))
+        " #selected-image": {
+          "flex-grow": "1",
+          "background-repeat": "no-repeat",
+          "background-size": "contain",
+          "background-position": "center"}}))
 
-    baseBridge.addToHead(element.stylesheet([
-      Lightbox]))
+    var body = element.template(
+      "body",
+      element.style({
+        "margin": "0"}))
+
+    baseBridge.addToHead(
+        element.stylesheet([
+          Lightbox,
+          FullScreenTopBarLayout,
+          body]))
 
     site.addRoute(
       "get",
@@ -70,7 +89,7 @@ library.using([
             }
             var img = document.getElementById(
               "selected-image")
-            img.src = images.urls[images.index]
+            img.style['background-image'] = "url("+images.urls[images.index]+")"
           })
 
         var lightbox = Lightbox([
@@ -80,11 +99,8 @@ library.using([
               1)
               .evalable()},
             "<"),
-          element(
-            ".image-container",[
-            element(
-              "img",{
-              "id": "selected-image"})]),
+          element({
+            "id": "selected-image"}),
           element(
             "button",{
             "onclick": loadImage.withArgs(
@@ -94,9 +110,12 @@ library.using([
 
         bridge.domReady(loadImage)
 
-        bridge.send([
-          element("p", [input]),
-          lightbox])})
+        bridge.send(
+          FullScreenTopBarLayout([
+            element(
+              "div",
+              input),
+            lightbox]))})
 
     site.start(
       2090)

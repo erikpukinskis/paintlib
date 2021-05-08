@@ -85,7 +85,12 @@ library.using([
             }
             var div = document.getElementById(
               "selected-image")
-            div.style['background-image'] = "url("+imageDb.images[imageDb.index].url+")"
+            var image = imageDb.images[imageDb.index]
+            if (!image) {
+              console.log("no images")
+              return
+            }
+            div.style['background-image'] = "url("+image.url+")"
             div.style.width = "100%"
             div.style.height = "100%"
             div.removeAttribute(
@@ -113,7 +118,7 @@ library.using([
           element(
             "button",{
             "onclick": loadImage.withArgs(
-              1)
+              -1)
               .evalable()},
             "<"),
           element(

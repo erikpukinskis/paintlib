@@ -1,0 +1,9 @@
+{
+  "dependencies": {
+    "browser-bridge": "*",
+    "web-site": "*",
+    "web-element": "*",
+    "basic-styles": "*",
+    "make-request": "*"
+  }
+}

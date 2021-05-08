@@ -23,6 +23,22 @@ library.using([
       return data.contentUrl
     })
 
+    var Lightbox = element.template.container(
+      ".lightbox",
+      element.style({
+        "display": "flex",
+        "flex-direction": "row",
+        " button": {
+          "flex-shrink": "0"},
+        " .image-container": {
+          "position": "relative",
+          "flex-grow": "1"},
+        " img": {
+          "max-width": "100%"}}))
+
+    baseBridge.addToHead(element.stylesheet([
+      Lightbox]))
+
     site.addRoute(
       "get",
       "/",
@@ -57,15 +73,18 @@ library.using([
             img.src = images.urls[images.index]
           })
 
-        var lightbox = element([
+        var lightbox = Lightbox([
           element(
             "button",{
             "onclick": loadImage.withArgs(
               1)
               .evalable()},
             "<"),
-          element("img", {
-            "id": "selected-image"}),
+          element(
+            ".image-container",[
+            element(
+              "img",{
+              "id": "selected-image"})]),
           element(
             "button",{
             "onclick": loadImage.withArgs(

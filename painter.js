@@ -19,9 +19,11 @@ library.using([
 
     var data = JSON.parse(fs.readFileSync('./test.json'))
 
-    var imageUrls = data.value.map(function(data) {
-      return data.contentUrl
-    })
+    var imageObjects = data.value.map(function(data) {
+      return {
+        url: data.contentUrl,
+        width: data.width,
+        height: data.height }})
 
     var FullScreenTopBarLayout = element.template.container(
       "div.layout",
@@ -41,11 +43,16 @@ library.using([
         "flex-direction": "row",
         " button": {
           "flex-shrink": "0"},
-        " #selected-image": {
+        " .image-container": {
           "flex-grow": "1",
+          "overflow": "scroll"},
+        " #selected-image": {
           "background-repeat": "no-repeat",
           "background-size": "contain",
-          "background-position": "center"}}))
+          "background-position": "center",
+          "cursor": "zoom-in"},
+        " #selected-image[data-zoomed=true]": {
+          "cursor": "zoom-out"}}))
 
     var body = element.template(
       "body",
@@ -65,32 +72,48 @@ library.using([
         var bridge = baseBridge.forResponse(
           response)
 
-        var images = bridge.defineSingleton(
-          'images',
-          [imageUrls],
-          function(urls) {
-            return urls })
-
-        var images = bridge.defineSingleton(
-          'images',
-          [imageUrls],
-          function(imageUrls) {
+        var imageDb = bridge.defineSingleton(
+          'imageDb',
+          [imageObjects],
+          function(imageObjects) {
             return {
               index: 0,
-              urls: imageUrls }})
+              images: imageObjects }})
 
         var loadImage = bridge.defineFunction([
-          images],
-          function loadImage(images, direction) {
+          imageDb],
+          function loadImage(imageDb, direction, event) {
+            event && event.stopPropagation()
             if (direction == 1) {
-              images.index++
+              imageDb.index++
             } else if (direction == -1) {
-              images.index--
+              imageDb.index--
             }
-            var img = document.getElementById(
+            var div = document.getElementById(
               "selected-image")
-            img.style['background-image'] = "url("+images.urls[images.index]+")"
-          })
+            div.style['background-image'] = "url("+imageDb.images[imageDb.index].url+")"
+            div.style.width = "100%"
+            div.style.height = "100%"
+            div.removeAttribute(
+              "data-zoomed")})
+
+        var zoomIn = bridge.defineFunction([
+          imageDb],
+          function zoomIn(imageDb) {
+            var image = imageDb.images[imageDb.index]
+            var div = document.getElementById(
+              "selected-image")
+            div.dataset.zoomed = div.dataset.zoomed ? "" : "true"
+            if (div.dataset.zoomed) {
+              var width = image.width+"px"
+              var height = image.height+"px"
+            } else {
+              var width = "100%"
+              var height = "100%"
+            }
+            div.style.width = width
+            div.style.height = height})
+
 
         var lightbox = Lightbox([
           element(
@@ -99,8 +122,12 @@ library.using([
               1)
               .evalable()},
             "<"),
-          element({
-            "id": "selected-image"}),
+          element(
+            ".image-container",
+            element({
+              "onclick": zoomIn.evalable(),
+              "id": "selected-image",
+              "style": "width: 100%; height: 100%;"})),
           element(
             "button",{
             "onclick": loadImage.withArgs(
@@ -113,7 +140,8 @@ library.using([
         bridge.send(
           FullScreenTopBarLayout([
             element(
-              "div",
+              "div",{
+              style: "padding: 0 10px 10px 10px"},
               input),
             lightbox]))})
 

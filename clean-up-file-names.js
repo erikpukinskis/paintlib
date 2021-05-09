@@ -6,8 +6,9 @@ module.exports = library.export(
   "web-element",
   "basic-styles",
   "fs",
-  "./check-button"],
-  function(BrowserBridge, element, basicStyles, fs, CheckButton) {
+  "./check-button",
+  "make-request"],
+  function(BrowserBridge, element, basicStyles, fs, CheckButton, makeRequest) {
 
     var baseBridge = new BrowserBridge()
 
@@ -27,25 +28,50 @@ module.exports = library.export(
       return true }
 
     function parseMetadata(filename) {
-      var title = filename.replace(/[.](jpg|jpeg)$/, "")
+      var verified = /\.\.jpeg$/.test(filename)
+      var title = filename.replace(/[.][.]?(jpg|jpeg)$/, "")
       var year = ""
       var artist = ""
 
       if (/^- /.test(title)) {
-        var year = "–"
+        var year = "-"
         title = title.slice(2)
       }
 
-      return {
-        year: year,
-        title: title,
-        artist: artist,
-        filename: filename}}
+      if (/^[0-9]{4} /.test(title)) {
+        var year = title.slice(0,4)
+        title = title.slice(5)
+      }
 
-    var confirmMeta = baseBridge.defineFunction(
-      function confirmMeta(id) {
-        console.log("confirm", id)
-      })
+      if (/,/.test(title)) {
+        var parts = title.match(/^(.*),(.*)$/)
+        artist = parts[1]
+        title = parts[2]
+      }
+
+      return {
+        year,
+        title,
+        artist,
+        filename,
+        verified}}
+
+    var confirmMeta = baseBridge.defineFunction([
+      makeRequest.defineOn(baseBridge)],
+      function confirmMeta(makeRequest, baseRoute, id, value) {
+        var element = document.getElementById(
+          id)
+        var year = element.querySelector("[name=year]").value
+        var artist = element.querySelector("[name=artist]").value
+        var title = element.querySelector("[name=title]").value
+        var filename = element.dataset.filename
+        makeRequest({
+          "method": "post",
+          "path": baseRoute+"/filename/"+filename+"/meta",
+          "data": {
+            year,
+            artist,
+            title}})})
 
     CheckButton.defineOn(
       baseBridge)
@@ -57,11 +83,13 @@ module.exports = library.export(
         "flex-direction": "row",
         "align-items": "center",
         " input": {
-          "padding-top": "0",
           "display": "inline-block",
           "margin-right": "1em"}}),
-      function(painting) {
+      function(painting, baseUrl) {
         var id = this.assignId()
+        this.addAttribute(
+          "data-filename",
+          painting.filename)
         this.addChildren([
           element(
             "input",{
@@ -84,22 +112,51 @@ module.exports = library.export(
           CheckButton(
             baseBridge,
             confirmMeta.withArgs(
+              baseUrl,
               id),
-            "Verified")])})
+            "Verified",
+            painting.verified)])})
 
     baseBridge.addToHead(
       element.stylesheet([
         Painting]))
-
-    var rows = paintings.map(Painting)
 
     function cleanUpFileNames(site, baseRoute, nav) {
       site.addRoute(
         "get",
         baseRoute,
         function(_, response) {
+          var rows = paintings.map(
+            function(data) {
+              return Painting(
+                data,
+                baseRoute)})
           baseBridge.forResponse(response).send([
             nav,
-            rows])})}
+            rows])})
+
+      site.addRoute(
+        "post",
+        baseRoute+"/filename/:filename/meta",
+        function(request, response) {
+          var filename = request.params.filename
+          var year = request.body.year
+          var artist = request.body.artist
+          var title = request.body.title
+          var newFilename = year+" "+artist+", "+title+"..jpeg"
+          rename(filename, newFilename)
+          response.send({
+            ok: true})})}
+
+    function rename(oldFilename, newFilename) {
+      var painting = paintings.find(withName)
+      function withName(painting) {
+        return painting.filename == oldFilename}
+      painting.filename = newFilename
+      fs.renameSync(
+        "paintings/"+oldFilename,
+        "paintings/"+newFilename)
+      console.log(
+        "renamed "+newFilename)}
 
     return cleanUpFileNames})

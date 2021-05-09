@@ -8,8 +8,7 @@ module.exports = library.export(
 
     var CheckButton = element.template(
       ".check-button",{
-      "role": "checkbox",
-      "aria-checked": "false"},
+      "role": "checkbox"},
       element.style({
         "display": "inline-block",
         "border": "0.1em solid "+basicStyles.light,
@@ -25,7 +24,7 @@ module.exports = library.export(
           "border-color": basicStyles.green,
           "background-color": basicStyles.green}}),
       "✔",
-      function(bridge, onclick, label) {
+      function(bridge, onclick, label, checked) {
         var id = this.assignId()
         var toggleCheckButton = bridge.remember(
           "check-button/toggle")
@@ -35,6 +34,9 @@ module.exports = library.export(
         this.addAttribute(
           "aria-label",
           label)
+        this.addAttribute(
+          "aria-checked",
+          checked ? "true" : "false")
         this.addAttribute(
           "onclick",
           toggleCheckButton.withArgs(

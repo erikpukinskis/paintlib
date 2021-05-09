@@ -121,6 +121,8 @@ module.exports = library.export(
           var value = element.getAttribute(
             "aria-checked")
           var newValue = value == "true" ? false : true
+          element.classList.remove(
+            "check-button__dirty")
           element.setAttribute(
             "aria-checked",
             newValue)

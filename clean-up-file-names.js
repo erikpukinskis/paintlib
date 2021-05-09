@@ -38,13 +38,29 @@ module.exports = library.export(
       hasVerifiedArtist)
       .map(
         function(painting) {
-          return painting.artist.toLowerCase()})
+          return painting.artist})
 
-    var paintersString = painters.join(
-      "|")
-    var paintersRegExp = new RegExp(
-      "("+paintersString+")",
-      'i')
+    var paintersRegExp = buildPaintersRegExp(
+      painters)
+
+    function buildPaintersRegExp(painters) {
+      var paintersString = painters.map(
+        toPainterRegExp)
+        .join(
+          "|")
+      return new RegExp(
+        "("+paintersString+")",
+        "i")}
+
+    function toPainterRegExp(name) {
+      var names = name.split(" ")
+      if (names.length != 2) {
+        return name}
+      var first = names[0]
+      var last = names[1]
+      return new RegExp(
+        first+"( [a-zA-Z]+)? "+last,
+        "i")}
 
     console.log(paintersRegExp)
 
@@ -55,17 +71,16 @@ module.exports = library.export(
           filename)})
 
     function addPainter(painter) {
-      painter = painter.toLowerCase()
       if (painters.includes(painter)) {
         return }
-      painters.push(painter)
-      paintersString = paintersString+"|"+painter
-      paintersRegExp = new RegExp(
-        "("+paintersString+")",
-        'i')
 
-      var painterRegExp = new RegExp(
-        painter, 'i')
+      painters.push(
+        painter)
+      paintersRegExp = buildPaintersRegExp(
+        painters)
+
+      var painterRegExp = toPainterRegExp(
+        painter)
 
       var freshMeta = []
 
@@ -111,7 +126,7 @@ module.exports = library.export(
       }
 
       var meta = {
-        year: trim(year),
+        year: year == "-" ? year : trim(year),
         title: trim(title),
         artist: trim(artist),
         filename: filename,
@@ -126,17 +141,20 @@ module.exports = library.export(
       var backClean = frontClean.replace(
         /[- \.,–_"]+$/,
         "")
+      var byClean = backClean.replace(
+        / ?by$/,
+        "")
       // if (backClean != text) {
       //   console.log(JSON.stringify(text),"→",JSON.stringify(backClean))
       //   debugger
       // }
-      return backClean}
+      return byClean}
 
     function hasVerifiedArtist(painting) {
       return painting && painting.verified && painting.artist}
 
     function whitelist(filename) {
-      if (filename === '.DS_Store') {
+      if (filename === ".DS_Store") {
         return false }
       return true }
 
@@ -153,13 +171,23 @@ module.exports = library.export(
         title = title.replace(year, "")
       }
 
-      var painterMatch = title.match(
-          paintersRegExp)
+      for(var painter of painters) {
+        if (painter == "Frances Hodgkins" && /ances/i.test(filename)) {
+          console.log(filename)
+          debugger
+        }
+        var painterMatch = title.match(
+          toPainterRegExp(
+            painter))
+        if (!painterMatch) {
+          continue}
+        artist = painter
+        title = title.replace(
+          painterMatch[0],
+          "")
+        break}
 
-      if (painterMatch) {
-        artist = painterMatch[1]
-        title = title.replace(artist, "")
-      } else if (/,/.test(title)) {
+      if (!artist && /,/.test(title)) {
         var parts = title.match(/^(.*),(.*)$/)
         artist = parts[1]
         title = parts[2]
@@ -181,6 +209,9 @@ module.exports = library.export(
     function metaToFilename(meta) {
       return meta.year+" "+meta.artist+", "+meta.title}
 
+    function capitalize(text) {
+      return text.slice(0,1).toUpperCase()+text.slice(1).toLowerCase()}
+
     var verify = baseBridge.defineFunction([
       makeRequest.defineOn(baseBridge)],
       function verify(makeRequest, baseRoute, id, verified, event) {
@@ -200,7 +231,7 @@ module.exports = library.export(
             title,
             verified}},
           function(data) {
-            console.log('new meta:', data.paintings)
+            console.log("new meta:", data.paintings)
             element.dataset.filename = data.renamed.filename})})
 
     var swap = baseBridge.defineFunction(
@@ -306,9 +337,11 @@ module.exports = library.export(
           if (verified) {
             var otherChanges = addPainter(
               artist)
-            otherChanges.forEach(
-              function(painting) {
-                paintings[painting.index] = painting})
+            if (otherChanges) {
+              otherChanges.forEach(
+                function(painting) {
+                  paintings[painting.index] = painting})
+            }
             var meta = 
               extractVerifiedMeta(
                 newFilename)

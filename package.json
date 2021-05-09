@@ -1,4 +1,5 @@
 {
+  "main": "site.js",
   "dependencies": {
     "browser-bridge": "*",
     "web-site": "*",

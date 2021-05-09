@@ -34,7 +34,8 @@ module.exports = library.export(
     var painters = paintings.filter(
       hasVerifiedArtist)
       .map(
-        toArtist)
+        function(painting) {
+          return painting.artist.toLowerCase()})
 
     var paintersString = painters.join(
       "|")
@@ -42,8 +43,23 @@ module.exports = library.export(
       "("+paintersString+")",
       'i')
 
+    console.log(paintersRegExp)
+
     filenames.forEach(
       guessPaintingMeta)
+
+    function addPainter(painter) {
+      painter = painter.toLowerCase()
+      if (painters.includes(painter)) {
+        return }
+      painters.push(painter)
+      paintersString = paintersString+"|"+painter
+      paintersRegExp = new RegExp(
+        "("+paintersString+")",
+        'i')
+      console.log("Added a new painter!", painter)
+      console.log(paintersRegExp)
+    }
 
     function extractVerifiedMeta(filename, i) {
       if (!/\.\.jpeg$/.test(filename)) {
@@ -76,10 +92,10 @@ module.exports = library.export(
 
     function trim(text) {
       var frontClean = text.replace(
-        /^[ \.,]+/,
+        /^[- \.,–_]+/,
         "")
       var backClean = frontClean.replace(
-        /[ \.,]+$/,
+        /[- \.,–_]+$/,
         "")
       // if (backClean != text) {
       //   console.log(JSON.stringify(text),"→",JSON.stringify(backClean))
@@ -89,9 +105,6 @@ module.exports = library.export(
 
     function hasVerifiedArtist(painting) {
       return painting.verified && painting.artist}
-
-    function toArtist(painting) {
-      return painting.artist}
 
     function whitelist(filename) {
       if (filename === '.DS_Store') {
@@ -254,8 +267,10 @@ module.exports = library.export(
         baseRoute+"meta",
         function(request, response) {
           var oldFilename = request.body.filename
+          var artist = request.body.artist
+          var verified = request.body.verified
 
-          var dots = request.body.verified ? ".." : "."
+          var dots = verified ? ".." : "."
           var newFilename = metaToFilename(request.body)+dots+"jpeg"
 
           var painting = paintings.find(
@@ -269,8 +284,13 @@ module.exports = library.export(
           copyMeta(
             request.body,
             painting)
+    
           painting.filename = newFilename
 
+          if (verified) {
+            addPainter(
+              artist)}
+    
           console.log(
             "renamed "+newFilename)
 

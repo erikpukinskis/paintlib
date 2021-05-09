@@ -20,46 +20,118 @@ module.exports = library.export(
     CircleButton.defineOn(
       baseBridge)
 
-    var paintings = fs.readdirSync(
+
+    var filenames = fs.readdirSync(
       "./paintings")
       .filter(
         whitelist)
+
+    var paintings = []
+
+    filenames.forEach(
+      extractVerifiedMeta)
+
+    var painters = paintings.filter(
+      hasVerifiedArtist)
       .map(
-        parseMetadata)
+        toArtist)
 
-    function whitelist(filename) {
-      if (filename === '.DS_Store') {
-        return false }
-      return true }
+    var paintersString = painters.join(
+      "|")
+    var paintersRegExp = new RegExp(
+      "("+paintersString+")",
+      'i')
+    console.log(paintersRegExp)
 
-    function parseMetadata(filename) {
-      var verified = /\.\.jpeg$/.test(filename)
-      var title = filename.replace(/[.][.]?(jpg|jpeg)$/, "")
+    filenames.forEach(
+      guessPaintingMeta)
+
+    function extractVerifiedMeta(filename, i) {
+      if (!/\.\.jpeg$/.test(filename)) {
+        return }
+
+      var title = filename.replace(/\.\.jpeg$/, "")
       var year = ""
       var artist = ""
 
       if (/^- /.test(title)) {
         var year = "-"
         title = title.slice(2)
-      }
-
-      if (/^[0-9]{4} /.test(title)) {
+      } else if (/^[0-9]{4} /.test(title)) {
         var year = title.slice(0,4)
         title = title.slice(5)
       }
 
-      if (/,/.test(title)) {
+      var parts = title.match(/^([^,]*),(.*)$/)
+      if (parts) {
+        artist = parts[1]
+        title = parts[2]
+      }
+
+      paintings[i] = {
+        year: trim(year),
+        title: trim(title),
+        artist: trim(artist),
+        filename: filename,
+        verified: true }}
+
+    function trim(text) {
+      var frontClean = text.replace(
+        /^[ \.,]+/,
+        "")
+      var backClean = frontClean.replace(
+        /[ \.,]+$/,
+        "")
+      // if (backClean != text) {
+      //   console.log(JSON.stringify(text),"→",JSON.stringify(backClean))
+      //   debugger
+      // }
+      return backClean}
+
+    function hasVerifiedArtist(painting) {
+      return painting.verified && painting.artist}
+
+    function toArtist(painting) {
+      return painting.artist}
+
+    function whitelist(filename) {
+      if (filename === '.DS_Store') {
+        return false }
+      return true }
+
+    function guessPaintingMeta(filename, i) {
+      if (paintings[i]) {
+        return }
+
+      var title = filename.replace(/\.(jpg|jpeg)$/i, "")
+      var year = ""
+      var artist = ""
+
+      var years = title.match(/[0-9]{4}/g)
+
+      if (years && years.length == 1) {
+        var year = years[0]
+        title = title.replace(year, "")
+      }
+
+      var painterMatch = title.match(
+          paintersRegExp)
+
+      if (painterMatch) {
+        artist = painterMatch[1]
+        title = title.replace(artist, "")
+      } else if (/,/.test(title)) {
         var parts = title.match(/^(.*),(.*)$/)
         artist = parts[1]
         title = parts[2]
       }
 
-      return {
-        year: year.trim(),
-        title: title.trim(),
-        artist: artist.trim(),
+      paintings[i] = {
+        year: trim(year),
+        title: trim(title),
+        artist: trim(artist),
         filename: filename,
-        verified}}
+        verified: false}}
 
     var verify = baseBridge.defineFunction([
       makeRequest.defineOn(baseBridge)],

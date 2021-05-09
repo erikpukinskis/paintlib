@@ -63,7 +63,7 @@ module.exports = library.export(
 
     var verify = baseBridge.defineFunction([
       makeRequest.defineOn(baseBridge)],
-      function verify(makeRequest, baseRoute, id, verified) {
+      function verify(makeRequest, baseRoute, id, verified, event) {
         var element = document.getElementById(
           id)
         var year = element.querySelector("[name=year]").value
@@ -102,8 +102,11 @@ module.exports = library.export(
         " input": {
           "display": "inline-block",
           "margin-right": "1em"}}),
-      function(painting, baseRoute) {
-        var id = this.assignId()
+      function(painting, baseRoute, index) {
+        var id = "painting-"+index
+        this.addAttribute(
+          "id",
+          id)
         this.addAttribute(
           "data-filename",
           painting.filename)
@@ -136,7 +139,9 @@ module.exports = library.export(
               baseRoute,
               id),
             "Verified",
-            painting.verified)])})
+            painting.verified,
+            "verification-checkbox",
+            index)])})
 
     baseBridge.addToHead(
       element.stylesheet([
@@ -148,10 +153,11 @@ module.exports = library.export(
         baseRoute,
         function(_, response) {
           var rows = paintings.map(
-            function(data) {
+            function(data, i) {
               return Painting(
                 data,
-                baseRoute)})
+                baseRoute,
+                i)})
           baseBridge.forResponse(response).send([
             nav,
             rows])})

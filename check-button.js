@@ -25,8 +25,14 @@ module.exports = library.export(
           "border-color": basicStyles.green,
           "background-color": basicStyles.green}}),
       "✔",
-      function(bridge, onclick, label, checked) {
-        var id = this.assignId()
+      function(bridge, onclick, label, checked, group, index) {
+        if (group) {
+          var id = group+"-"+index
+          this.addAttribute(
+            "id",
+            id)
+        } else {
+          var id = this.assignId()}
         var toggleCheckButton = bridge.remember(
           "check-button/toggle")
         if (!toggleCheckButton) {
@@ -42,18 +48,65 @@ module.exports = library.export(
           "onclick",
           toggleCheckButton.withArgs(
             id,
+            bridge.event,
             onclick)
             .evalable())})
 
     CheckButton.defineOn = function defineOn(bridge) {
       var binding = bridge.remember(
         "check-button/toggle")
+
       if (binding) return
+
       bridge.addToHead(
         element.stylesheet(
           CheckButton))
-      binding = bridge.defineFunction(
-        function toggleCheckButton(id, callback) {
+
+      var last = bridge.defineSingleton(
+        function() {
+          return {
+            automating: false,
+            group: undefined,
+            index: undefined }})
+
+      binding = bridge.defineFunction([
+        last],
+        function toggleCheckButton(last, id, event, callback) {
+          setTimeout(function() {
+          document.getSelection().removeAllRanges();
+          })
+          var parts = id.match(/^(.*)-([0-9]+)$/)
+          var group = parts[1]
+          var index = parseInt(parts[2])
+          if (event.shiftKey && last.group == group && !last.automating) {
+            if (index < last.index) {
+              var from = index
+              var to = last.index
+            } else {
+              var from = last.index
+              var to = index
+            }
+            // set the automating flag so we don't trigger some infinite recurion by hitting this branch again
+            last.automating = true
+            for(var i=from; i<=to; i++) {
+              if (i != index && i != last.index) {
+                var element = document.getElementById(
+                    group+"-"+i)
+                element.click()
+              }
+            }
+            last.automating = false
+            last.index = index
+          } else {
+            var from = index
+            var to = index
+          }
+
+          if (!last.automating) {
+            last.index = index
+            last.group = group
+          }
+
           var element = document.getElementById(
             id)
           var value = element.getAttribute(
@@ -63,7 +116,9 @@ module.exports = library.export(
             "aria-checked",
             newValue)
           callback(
-            newValue)})
+            newValue,
+            event)})
+
       bridge.see(
         "check-button/toggle",
         binding)}

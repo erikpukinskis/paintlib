@@ -29,7 +29,10 @@ module.exports = library.export(
     var paintings = []
 
     filenames.forEach(
-      extractVerifiedMeta)
+      function(filename, index) {
+        paintings[index] = extractVerifiedMeta(
+          filename,
+          index)})
 
     var painters = paintings.filter(
       hasVerifiedArtist)
@@ -46,7 +49,10 @@ module.exports = library.export(
     console.log(paintersRegExp)
 
     filenames.forEach(
-      guessPaintingMeta)
+      function(filename, index) {
+        if (paintings[index]) return
+        paintings[index] = guessPaintingMeta(
+          filename)})
 
     function addPainter(painter) {
       painter = painter.toLowerCase()
@@ -57,11 +63,32 @@ module.exports = library.export(
       paintersRegExp = new RegExp(
         "("+paintersString+")",
         'i')
+
+      var painterRegExp = new RegExp(
+        painter, 'i')
+
+      var freshMeta = []
+
+      paintings.forEach(
+        function(painting, index) {
+          if (!painterRegExp.test(
+            painting.filename)) {
+            return}
+          var meta = guessPaintingMeta(
+            painting.filename)
+          meta.index = index
+          if (!meta) {
+            return}
+          freshMeta.push(
+            meta)})
+
       console.log("Added a new painter!", painter)
       console.log(paintersRegExp)
+
+      return freshMeta
     }
 
-    function extractVerifiedMeta(filename, i) {
+    function extractVerifiedMeta(filename) {
       if (!/\.\.jpeg$/.test(filename)) {
         return }
 
@@ -83,19 +110,21 @@ module.exports = library.export(
         title = parts[2]
       }
 
-      paintings[i] = {
+      var meta = {
         year: trim(year),
         title: trim(title),
         artist: trim(artist),
         filename: filename,
-        verified: true }}
+        verified: true }
+
+      return meta}
 
     function trim(text) {
       var frontClean = text.replace(
-        /^[- \.,–_]+/,
+        /^[- \.,–_"]+/,
         "")
       var backClean = frontClean.replace(
-        /[- \.,–_]+$/,
+        /[- \.,–_"]+$/,
         "")
       // if (backClean != text) {
       //   console.log(JSON.stringify(text),"→",JSON.stringify(backClean))
@@ -104,17 +133,14 @@ module.exports = library.export(
       return backClean}
 
     function hasVerifiedArtist(painting) {
-      return painting.verified && painting.artist}
+      return painting && painting.verified && painting.artist}
 
     function whitelist(filename) {
       if (filename === '.DS_Store') {
         return false }
       return true }
 
-    function guessPaintingMeta(filename, i) {
-      if (paintings[i]) {
-        return }
-
+    function guessPaintingMeta(filename) {
       var originalFilename = filename.replace(/\.(jpg|jpeg)$/i, "")
       var title = originalFilename
       var year = ""
@@ -149,16 +175,11 @@ module.exports = library.export(
       var newFilename = metaToFilename(
         meta)
       meta.dirty = newFilename != originalFilename
-      paintings[i] = meta}
+
+      return meta}
 
     function metaToFilename(meta) {
       return meta.year+" "+meta.artist+", "+meta.title}
-
-    function copyMeta(meta, painting) {
-      painting.verified = meta.verified
-      painting.year = meta.year
-      painting.artist = meta.artist
-      painting.title = meta.title }
 
     var verify = baseBridge.defineFunction([
       makeRequest.defineOn(baseBridge)],
@@ -179,7 +200,8 @@ module.exports = library.export(
             title,
             verified}},
           function(data) {
-            element.dataset.filename = data.newFilename})})
+            console.log('new meta:', data.paintings)
+            element.dataset.filename = data.renamed.filename})})
 
     var swap = baseBridge.defineFunction(
       function swap(id) {
@@ -273,7 +295,7 @@ module.exports = library.export(
           var dots = verified ? ".." : "."
           var newFilename = metaToFilename(request.body)+dots+"jpeg"
 
-          var painting = paintings.find(
+          var index = paintings.findIndex(
             function(painting) {
             return painting.filename == oldFilename})
 
@@ -281,20 +303,28 @@ module.exports = library.export(
             "paintings/"+oldFilename,
             "paintings/"+newFilename)
           
-          copyMeta(
-            request.body,
-            painting)
-    
-          painting.filename = newFilename
-
           if (verified) {
-            addPainter(
-              artist)}
-    
+            var otherChanges = addPainter(
+              artist)
+            otherChanges.forEach(
+              function(painting) {
+                paintings[painting.index] = painting})
+            var meta = 
+              extractVerifiedMeta(
+                newFilename)
+          } else {
+            var otherChanges = []
+            var meta = guessPaintingMeta(
+              newFilename)
+          }
+
+          paintings[index] = meta
+        
           console.log(
             "renamed "+newFilename)
 
           response.send({
-            newFilename})})}
+            paintings: otherChanges,
+            renamed: meta})})}
 
     return cleanUpFileNames})

@@ -118,10 +118,10 @@ module.exports = library.export(
       makeRequest.defineOn(
         baseBridge),
       baseLoadImage],
-      function loadArtist(makeRequest, baseLoadImage, imageDb, event) {
+      function loadArtist(makeRequest, baseLoadImage, baseRoute, imageDb, event) {
         event.preventDefault()
         var artistName = event.target.name.value
-        var path = "/painter/"+encodeURIComponent(artistName)
+        var path = baseRoute+"/painter/"+encodeURIComponent(artistName)
         makeRequest({
           "method": "get",
           "path": path},
@@ -131,10 +131,10 @@ module.exports = library.export(
               imageDb,
               0)})})
 
-    function browsePainter(site) {
+    function browsePainter(site, baseRoute, nav) {
       site.addRoute(
         "get",
-        "/",
+        baseRoute,
         function(request, response) {
           var bridge = baseBridge.forResponse(
             response)
@@ -170,6 +170,7 @@ module.exports = library.export(
           var form = element(
             "form",{
               "onsubmit": loadArtist.withArgs(
+                baseRoute,
                 imageDb,
                 bridge.event).evalable()},
             element(
@@ -180,6 +181,7 @@ module.exports = library.export(
 
           bridge.send(
             FullScreenTopBarLayout([
+              nav,
               element(
                 "div",{
                 style: "padding: 0 10px 10px 10px"},
@@ -189,7 +191,7 @@ module.exports = library.export(
 
       site.addRoute(
         "get",
-        "/painter/:name",
+        baseRoute+"/painter/:name",
         function(request, response) {
           var painterName = request.params.name.replace(/[^a-zA-Z ]+/g, "").toLowerCase()
 

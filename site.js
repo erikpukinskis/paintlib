@@ -12,24 +12,17 @@ library.using([
     var Nav = element.template.container(
       ".nav",
       element.style({
-        "margin-top": "1em",
-        " a": {
-          "display": "inline-block",
-          "padding": "0.3em 0.6em",
-          "background": "#ccc",
-          "color": "white",
-          "text-decoration": "none",
-          "margin-right": "0.6em",
-          "border-radius": "0.3em"}}))
+        "margin-top": "1em"}))
 
     var nav = Nav([
       element.stylesheet(Nav),
       element(
-        "a",{
+        "a.button.light",{
         "href": "/"},
         "Artists"),
+      '&nbsp;',
       element(
-        "a",{
+        "a.button.light",{
         "href": "/clean-up"},
         "Paintings")])
 

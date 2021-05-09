@@ -7,13 +7,13 @@ module.exports = library.export(
   function(element, basicStyles) {
 
     var CircleButton = element.template(
-      "button.circle-button",{
+      ".circle-button.button.light",{
       "role": "checkbox"},
       element.style({
         "display": "inline-block",
-        "width": "1.333em",
-        "height": "1.333em",
-        "border-radius": "1em",
+        "width": "1.5em",
+        "height": "1.5em",
+        "border-radius": "1.5em",
         "border": "none",
         "cursor": "pointer",
         "color": "white",
@@ -21,10 +21,8 @@ module.exports = library.export(
         "flex-direction": "column",
         "align-items": "center",
         "box-sizing": "border-box",
-        "background-color": basicStyles.light,
-        "line-height": "0.9em",
-        ":hover": {
-          "background-color": "#999"}}),
+        "line-height": "1em",
+        "font-weight": "bold"}),
       function(child, onclick) {
         this.addAttribute(
           "onclick", onclick.evalable())

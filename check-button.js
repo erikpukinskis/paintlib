@@ -11,21 +11,27 @@ module.exports = library.export(
       "role": "checkbox"},
       element.style({
         "display": "inline-block",
-        "border": "0.1em solid "+basicStyles.light,
+        "border": "0.2em solid "+basicStyles.colors.light,
+        "[aria-checked=false]:hover": {
+          "border-color": basicStyles.colors.bright},
+        "[aria-checked=true]:hover": {
+          "background": basicStyles.colors.active.bright},
         "flex-shrink": "0",
-        "width": "1.333em",
-        "height": "1.333em",
-        "border-radius": "1em",
+        "width": "1.5em",
+        "height": "1.5em",
+        "border-radius": "1.5em",
         "cursor": "pointer",
         "color": "white",
         "box-sizing": "border-box",
         "text-align": "center",
-        "line-height": "1.333em",
+        "line-height": "1.25em",
         "[aria-checked=true]": {
-          "border-color": basicStyles.green,
-          "background-color": basicStyles.green}}),
+          "border-color": 'transparent',
+          "background-color": basicStyles.colors.bright},
+        ".check-button__dirty": {
+          "border-color": basicStyles.colors.hey}}),
       "✔",
-      function(bridge, onclick, label, checked, group, index) {
+      function(bridge, onclick, label, checked, group, index, dirty) {
         if (group) {
           var id = group+"-"+index
           this.addAttribute(
@@ -50,7 +56,10 @@ module.exports = library.export(
             id,
             bridge.event,
             onclick)
-            .evalable())})
+            .evalable())
+        if (dirty) {
+          this.addSelector(
+            ".check-button__dirty")}})
 
     CheckButton.defineOn = function defineOn(bridge) {
       var binding = bridge.remember(

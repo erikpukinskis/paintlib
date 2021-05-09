@@ -41,7 +41,6 @@ module.exports = library.export(
     var paintersRegExp = new RegExp(
       "("+paintersString+")",
       'i')
-    console.log(paintersRegExp)
 
     filenames.forEach(
       guessPaintingMeta)
@@ -103,7 +102,8 @@ module.exports = library.export(
       if (paintings[i]) {
         return }
 
-      var title = filename.replace(/\.(jpg|jpeg)$/i, "")
+      var originalFilename = filename.replace(/\.(jpg|jpeg)$/i, "")
+      var title = originalFilename
       var year = ""
       var artist = ""
 
@@ -126,12 +126,26 @@ module.exports = library.export(
         title = parts[2]
       }
 
-      paintings[i] = {
+      var meta = {
         year: trim(year),
         title: trim(title),
         artist: trim(artist),
         filename: filename,
-        verified: false}}
+        verified: false}
+
+      var newFilename = metaToFilename(
+        meta)
+      meta.dirty = newFilename != originalFilename
+      paintings[i] = meta}
+
+    function metaToFilename(meta) {
+      return meta.year+" "+meta.artist+", "+meta.title}
+
+    function copyMeta(meta, painting) {
+      painting.verified = meta.verified
+      painting.year = meta.year
+      painting.artist = meta.artist
+      painting.title = meta.title }
 
     var verify = baseBridge.defineFunction([
       makeRequest.defineOn(baseBridge)],
@@ -213,7 +227,8 @@ module.exports = library.export(
             "Verified",
             painting.verified,
             "verification-checkbox",
-            index)])})
+            index,
+            painting.dirty)])})
 
     baseBridge.addToHead(
       element.stylesheet([
@@ -239,13 +254,9 @@ module.exports = library.export(
         baseRoute+"meta",
         function(request, response) {
           var oldFilename = request.body.filename
-          var verified = request.body.verified
-          var year = request.body.year.trim()
-          var artist = request.body.artist.trim()
-          var title = request.body.title.trim()
 
-          var dots = verified ? ".." : "."
-          var newFilename = year+" "+artist+", "+title+dots+"jpeg"
+          var dots = request.body.verified ? ".." : "."
+          var newFilename = metaToFilename(request.body)+dots+"jpeg"
 
           var painting = paintings.find(
             function(painting) {
@@ -255,11 +266,10 @@ module.exports = library.export(
             "paintings/"+oldFilename,
             "paintings/"+newFilename)
           
+          copyMeta(
+            request.body,
+            painting)
           painting.filename = newFilename
-          painting.verified = verified
-          painting.year = year
-          painting.artist = artist
-          painting.title = title
 
           console.log(
             "renamed "+newFilename)

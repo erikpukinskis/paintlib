@@ -57,7 +57,7 @@ module.exports = library.export(
             id)
           var value = element.getAttribute(
             "aria-checked")
-          var newValue = value == "true" ? "false" : true
+          var newValue = value == "true" ? false : true
           element.setAttribute(
             "aria-checked",
             newValue)

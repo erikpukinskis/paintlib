@@ -121,7 +121,7 @@ module.exports = library.export(
       function loadArtist(makeRequest, baseLoadImage, baseRoute, imageDb, event) {
         event.preventDefault()
         var artistName = event.target.name.value
-        var path = baseRoute+"/painter/"+encodeURIComponent(artistName)
+        var path = baseRoute+"painter/"+encodeURIComponent(artistName)
         makeRequest({
           "method": "get",
           "path": path},
@@ -191,7 +191,7 @@ module.exports = library.export(
 
       site.addRoute(
         "get",
-        baseRoute+"/painter/:name",
+        baseRoute+"painter/:name",
         function(request, response) {
           var painterName = request.params.name.replace(/[^a-zA-Z ]+/g, "").toLowerCase()
 
@@ -199,7 +199,7 @@ module.exports = library.export(
             painterName,
             function(data) {
               response.send(
-                data)})})}
+                data.value)})})}
 
     return browsePainter
 

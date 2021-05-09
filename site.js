@@ -40,7 +40,7 @@ library.using([
 
     cleanUpFileNames(
       site,
-      "/clean-up",
+      "/clean-up/",
       nav)
 
     site.start(

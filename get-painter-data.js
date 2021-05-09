@@ -2,8 +2,9 @@ var library = require("module-library")(require)
 
 module.exports = library.export(
   "get-painter-data",[
-  "fs"],
-  function(fs) {
+  "fs",
+  "make-request"],
+  function(fs, makeRequest) {
 
     function getPainterData(painterName, callback) {
       var filename = "painters/"+painterName+".json"

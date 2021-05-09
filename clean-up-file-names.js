@@ -50,15 +50,15 @@ module.exports = library.export(
       }
 
       return {
-        year,
-        title,
-        artist,
-        filename,
+        year: year.trim(),
+        title: title.trim(),
+        artist: artist.trim(),
+        filename: filename,
         verified}}
 
-    var confirmMeta = baseBridge.defineFunction([
+    var verify = baseBridge.defineFunction([
       makeRequest.defineOn(baseBridge)],
-      function confirmMeta(makeRequest, baseRoute, id, value) {
+      function verify(makeRequest, baseRoute, id, verified) {
         var element = document.getElementById(
           id)
         var year = element.querySelector("[name=year]").value
@@ -67,11 +67,16 @@ module.exports = library.export(
         var filename = element.dataset.filename
         makeRequest({
           "method": "post",
-          "path": baseRoute+"/filename/"+filename+"/meta",
+          "path": baseRoute+"meta",
           "data": {
+            filename,
             year,
             artist,
-            title}})})
+            title,
+            verified}},
+          function(data) {
+            element.dataset.filename = data.newFilename
+          })})
 
     CheckButton.defineOn(
       baseBridge)
@@ -111,7 +116,7 @@ module.exports = library.export(
             "value": painting.title}),
           CheckButton(
             baseBridge,
-            confirmMeta.withArgs(
+            verify.withArgs(
               baseUrl,
               id),
             "Verified",
@@ -137,26 +142,35 @@ module.exports = library.export(
 
       site.addRoute(
         "post",
-        baseRoute+"/filename/:filename/meta",
+        baseRoute+"meta",
         function(request, response) {
-          var filename = request.params.filename
-          var year = request.body.year
-          var artist = request.body.artist
-          var title = request.body.title
-          var newFilename = year+" "+artist+", "+title+"..jpeg"
-          rename(filename, newFilename)
-          response.send({
-            ok: true})})}
+          var oldFilename = request.body.filename
+          var verified = request.body.verified
+          var year = request.body.year.trim()
+          var artist = request.body.artist.trim()
+          var title = request.body.title.trim()
 
-    function rename(oldFilename, newFilename) {
-      var painting = paintings.find(withName)
-      function withName(painting) {
-        return painting.filename == oldFilename}
-      painting.filename = newFilename
-      fs.renameSync(
-        "paintings/"+oldFilename,
-        "paintings/"+newFilename)
-      console.log(
-        "renamed "+newFilename)}
+          var dots = verified ? ".." : "."
+          var newFilename = year+" "+artist+", "+title+dots+"jpeg"
+
+          var painting = paintings.find(
+            function(painting) {
+            return painting.filename == oldFilename})
+
+          fs.renameSync(
+            "paintings/"+oldFilename,
+            "paintings/"+newFilename)
+          
+          painting.filename = newFilename
+          painting.verified = verified
+          painting.year = year
+          painting.artist = artist
+          painting.title = title
+
+          console.log(
+            "renamed "+newFilename)
+
+          response.send({
+            newFilename})})}
 
     return cleanUpFileNames})

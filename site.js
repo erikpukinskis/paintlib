@@ -12,12 +12,13 @@ library.using([
     var Nav = element.template.container(
       ".nav",
       element.style({
-        "margin-top": "2em",
+        "margin-top": "1em",
         " a": {
           "display": "inline-block",
           "padding": "0.3em 0.6em",
-          "background": "#b4d1c6",
-          "color": "#ceffed",
+          "background": "#ccc",
+          "color": "white",
+          "text-decoration": "none",
           "margin-right": "0.6em",
           "border-radius": "0.3em"}}))
 

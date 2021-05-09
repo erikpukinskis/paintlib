@@ -7,12 +7,17 @@ module.exports = library.export(
   "basic-styles",
   "fs",
   "./check-button",
+  "./circle-button",
   "make-request"],
-  function(BrowserBridge, element, basicStyles, fs, CheckButton, makeRequest) {
+  function(BrowserBridge, element, basicStyles, fs, CheckButton, CircleButton, makeRequest) {
 
     var baseBridge = new BrowserBridge()
 
     basicStyles.addTo(
+      baseBridge)
+    CheckButton.defineOn(
+      baseBridge)
+    CircleButton.defineOn(
       baseBridge)
 
     var paintings = fs.readdirSync(
@@ -75,11 +80,18 @@ module.exports = library.export(
             title,
             verified}},
           function(data) {
-            element.dataset.filename = data.newFilename
-          })})
+            element.dataset.filename = data.newFilename})})
 
-    CheckButton.defineOn(
-      baseBridge)
+    var swap = baseBridge.defineFunction(
+      function swap(id) {
+        var element = document.getElementById(
+          id)
+        var artist = element.querySelector("[name=artist]")
+        var title = element.querySelector("[name=title]")
+        var newArtist = title.value
+        var newTitle = artist.value
+        artist.value = newArtist
+        title.value = newTitle})
 
     var Painting = element.template(
       ".painting",
@@ -90,7 +102,7 @@ module.exports = library.export(
         " input": {
           "display": "inline-block",
           "margin-right": "1em"}}),
-      function(painting, baseUrl) {
+      function(painting, baseRoute) {
         var id = this.assignId()
         this.addAttribute(
           "data-filename",
@@ -108,6 +120,10 @@ module.exports = library.export(
             "type": "text",
             "size": "18",
             "value": painting.artist}),
+          CircleButton(
+            "⇌",
+            swap.withArgs(
+              id)),
           element(
             "input",{
             "name": "title",
@@ -117,7 +133,7 @@ module.exports = library.export(
           CheckButton(
             baseBridge,
             verify.withArgs(
-              baseUrl,
+              baseRoute,
               id),
             "Verified",
             painting.verified)])})

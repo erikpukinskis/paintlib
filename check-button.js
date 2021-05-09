@@ -12,6 +12,7 @@ module.exports = library.export(
       element.style({
         "display": "inline-block",
         "border": "0.1em solid "+basicStyles.light,
+        "flex-shrink": "0",
         "width": "1.333em",
         "height": "1.333em",
         "border-radius": "1em",

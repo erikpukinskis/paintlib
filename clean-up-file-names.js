@@ -53,13 +53,16 @@ module.exports = library.export(
         "i")}
 
     function toPainterRegExp(name) {
+      name = name.replace(/\./, "[.]?")
       var names = name.split(" ")
-      if (names.length != 2) {
-        return name}
-      var first = names[0]
-      var last = names[1]
+
+      if (names.length == 2) {
+        var first = names[0]
+        var last = names[1]
+        name = first+"( [a-zA-Z]+| [A-Z][.])? "+last}
+
       return new RegExp(
-        first+"( [a-zA-Z]+)? "+last,
+        name,
         "i")}
 
     console.log(paintersRegExp)
@@ -111,12 +114,17 @@ module.exports = library.export(
       var year = ""
       var artist = ""
 
+      var yearMatch = title.match(
+        /^([0-9]{4}[?]?) /)
+
       if (/^- /.test(title)) {
         var year = "-"
         title = title.slice(2)
-      } else if (/^[0-9]{4} /.test(title)) {
-        var year = title.slice(0,4)
-        title = title.slice(5)
+      } else if (yearMatch) {
+        var year = yearMatch[1]
+        title = title.replace(
+          yearMatch[0],
+          "")
       }
 
       var parts = title.match(/^([^,]*),(.*)$/)
@@ -136,19 +144,22 @@ module.exports = library.export(
 
     function trim(text) {
       var frontClean = text.replace(
-        /^[- \.,–_"]+/,
+        /^[- \.,—_"]+/,
         "")
       var backClean = frontClean.replace(
-        /[- \.,–_"]+$/,
+        /[- \.,—_"]+$/,
         "")
       var byClean = backClean.replace(
         / ?by$/,
+        "")
+      var sClean = byClean.replace(
+        /^['’]s /,
         "")
       // if (backClean != text) {
       //   console.log(JSON.stringify(text),"→",JSON.stringify(backClean))
       //   debugger
       // }
-      return byClean}
+      return sClean}
 
     function hasVerifiedArtist(painting) {
       return painting && painting.verified && painting.artist}
@@ -164,6 +175,13 @@ module.exports = library.export(
       var year = ""
       var artist = ""
 
+      if (!/ /.test(
+        title)) {
+        var withSpaces = title.replace(
+          /[-_]+/g,
+          " ")
+        title = withSpaces}
+
       var years = title.match(/[0-9]{4}/g)
 
       if (years && years.length == 1) {
@@ -172,10 +190,10 @@ module.exports = library.export(
       }
 
       for(var painter of painters) {
-        if (painter == "Frances Hodgkins" && /ances/i.test(filename)) {
-          console.log(filename)
-          debugger
-        }
+        // if (painter == "Georgia" && /Maia S. Oprea/i.test(filename)) {
+        //   console.log(filename)
+        //   debugger
+        // }
         var painterMatch = title.match(
           toPainterRegExp(
             painter))
@@ -188,7 +206,7 @@ module.exports = library.export(
         break}
 
       if (!artist && /,/.test(title)) {
-        var parts = title.match(/^(.*),(.*)$/)
+        var parts = title.match(/^([^,]*),(.*)$/)
         artist = parts[1]
         title = parts[2]
       }
@@ -267,13 +285,13 @@ module.exports = library.export(
             "input",{
             "name": "year",
             "type": "text",
-            "size": "4",
+            "size": "5",
             "value": painting.year}),
           element(
             "input",{
             "name": "artist",
             "type": "text",
-            "size": "18",
+            "size": "20",
             "value": painting.artist}),
           CircleButton(
             "⇌",
@@ -329,6 +347,10 @@ module.exports = library.export(
           var index = paintings.findIndex(
             function(painting) {
             return painting.filename == oldFilename})
+
+          if (fs.existsSync(
+            "paintings/"+newFilename)) {
+            throw new Error("paintings/"+newFilename+" already exists. Seems dangerous to rename")}
 
           fs.renameSync(
             "paintings/"+oldFilename,

@@ -74,11 +74,17 @@ module.exports = library.export(
           filename)})
 
     function addPainter(painter) {
-      if (painters.includes(painter)) {
-        return }
+      // if (painters.includes(painter)) {
+      //   return }
 
-      painters.push(
-        painter)
+      if (!painters.includes(painter)) {
+        painters.push(
+          painter)
+        console.log("Added a new painter!", painter)
+      }
+
+      // painters.push(
+      //   painter)
       paintersRegExp = buildPaintersRegExp(
         painters)
 
@@ -99,9 +105,6 @@ module.exports = library.export(
             return}
           freshMeta.push(
             meta)})
-
-      console.log("Added a new painter!", painter)
-      console.log(paintersRegExp)
 
       return freshMeta
     }
@@ -230,9 +233,26 @@ module.exports = library.export(
     function capitalize(text) {
       return text.slice(0,1).toUpperCase()+text.slice(1).toLowerCase()}
 
+    var updateMeta = baseBridge.defineFunction(
+      function updateMeta(painting) {
+        var element = document.querySelector("[data-filename='"+painting.filename.replace("'", "\\'")+"']")
+
+        if (!element || !painting.dirty) return
+
+        var year = element.querySelector("[name=year]")
+        var artist = element.querySelector("[name=artist]")
+        var title = element.querySelector("[name=title]")
+
+        year.value = painting.year
+        artist.value = painting.artist
+        title.value = painting.title
+        element.classList.add(
+          "hot-flash")})
+
     var verify = baseBridge.defineFunction([
-      makeRequest.defineOn(baseBridge)],
-      function verify(makeRequest, baseRoute, id, verified, event) {
+      makeRequest.defineOn(baseBridge),
+      updateMeta],
+      function verify(makeRequest, updateMeta, baseRoute, id, verified, event) {
         var element = document.getElementById(
           id)
         var year = element.querySelector("[name=year]").value
@@ -249,8 +269,10 @@ module.exports = library.export(
             title,
             verified}},
           function(data) {
-            console.log("new meta:", data.paintings)
-            element.dataset.filename = data.renamed.filename})})
+            element.dataset.filename = data.renamed.filename
+            debugger
+            data.paintings.forEach(
+              updateMeta)})})
 
     var swap = baseBridge.defineFunction(
       function swap(id) {

@@ -8,8 +8,11 @@ module.exports = library.export(
   "fs",
   "./check-button",
   "./circle-button",
-  "make-request"],
-  function(BrowserBridge, element, basicStyles, fs, CheckButton, CircleButton, makeRequest) {
+  "make-request",
+  "./trim",
+  "./extract-verified-meta",
+  "./load-paintings"],
+  function(BrowserBridge, element, basicStyles, fs, CheckButton, CircleButton, makeRequest, trim, extractVerifiedMeta, loadPaintings) {
 
     var baseBridge = new BrowserBridge()
 
@@ -20,25 +23,7 @@ module.exports = library.export(
     CircleButton.defineOn(
       baseBridge)
 
-
-    var filenames = fs.readdirSync(
-      "./paintings")
-      .filter(
-        whitelist)
-
-    var paintings = []
-
-    filenames.forEach(
-      function(filename, index) {
-        paintings[index] = extractVerifiedMeta(
-          filename,
-          index)})
-
-    var painters = paintings.filter(
-      hasVerifiedArtist)
-      .map(
-        function(painting) {
-          return painting.artist})
+    var { paintings, painters, filenames } = loadPaintings()
 
     var paintersRegExp = buildPaintersRegExp(
       painters)
@@ -64,8 +49,6 @@ module.exports = library.export(
       return new RegExp(
         name,
         "i")}
-
-    console.log(paintersRegExp)
 
     filenames.forEach(
       function(filename, index) {
@@ -109,69 +92,6 @@ module.exports = library.export(
       return freshMeta
     }
 
-    function extractVerifiedMeta(filename) {
-      if (!/\.\.jpeg$/.test(filename)) {
-        return }
-
-      var title = filename.replace(/\.\.jpeg$/, "")
-      var year = ""
-      var artist = ""
-
-      var yearMatch = title.match(
-        /^([0-9]{4}[?]?) /)
-
-      if (/^- /.test(title)) {
-        var year = "-"
-        title = title.slice(2)
-      } else if (yearMatch) {
-        var year = yearMatch[1]
-        title = title.replace(
-          yearMatch[0],
-          "")
-      }
-
-      var parts = title.match(/^([^,]*),(.*)$/)
-      if (parts) {
-        artist = parts[1]
-        title = parts[2]
-      }
-
-      var meta = {
-        year: year == "-" ? year : trim(year),
-        title: trim(title),
-        artist: trim(artist),
-        filename: filename,
-        verified: true }
-
-      return meta}
-
-    function trim(text) {
-      var frontClean = text.replace(
-        /^[- \.,—_"]+/,
-        "")
-      var backClean = frontClean.replace(
-        /[- \.,—_"]+$/,
-        "")
-      var byClean = backClean.replace(
-        / ?by$/,
-        "")
-      var sClean = byClean.replace(
-        /^['’]s /,
-        "")
-      // if (backClean != text) {
-      //   console.log(JSON.stringify(text),"→",JSON.stringify(backClean))
-      //   debugger
-      // }
-      return sClean}
-
-    function hasVerifiedArtist(painting) {
-      return painting && painting.verified && painting.artist}
-
-    function whitelist(filename) {
-      if (filename === ".DS_Store") {
-        return false }
-      return true }
-
     function guessPaintingMeta(filename) {
       var originalFilename = filename.replace(/\.(jpg|jpeg)$/i, "")
       var title = originalFilename
@@ -181,7 +101,7 @@ module.exports = library.export(
       if (!/ /.test(
         title)) {
         var withSpaces = title.replace(
-          /[-_]+/g,
+          /[-_+]+/g,
           " ")
         title = withSpaces}
 
@@ -193,7 +113,7 @@ module.exports = library.export(
       }
 
       for(var painter of painters) {
-        // if (painter == "Georgia" && /Maia S. Oprea/i.test(filename)) {
+        // if (painter == "Jo Baer" && /aer/i.test(filename)) {
         //   console.log(filename)
         //   debugger
         // }
@@ -270,7 +190,10 @@ module.exports = library.export(
             verified}},
           function(data) {
             element.dataset.filename = data.renamed.filename
-            debugger
+            var title = element.querySelector("[name=title]")
+            var year = element.querySelector("[name=year]")
+            title.value = data.renamed.title
+            year.value = data.renamed.year
             data.paintings.forEach(
               updateMeta)})})
 
@@ -353,6 +276,9 @@ module.exports = library.export(
                 i)})
           baseBridge.forResponse(response).send([
             nav,
+            element(
+              "h1",
+              paintings.length+" Paintings"),
             rows])})
 
       site.addRoute(
@@ -363,7 +289,11 @@ module.exports = library.export(
           var artist = request.body.artist
           var verified = request.body.verified
 
+          if (verified && !request.body.year) {
+            request.body.year = "-"}
+
           var dots = verified ? ".." : "."
+
           var newFilename = metaToFilename(request.body)+dots+"jpeg"
 
           var index = paintings.findIndex(

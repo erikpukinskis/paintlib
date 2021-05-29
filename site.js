@@ -4,8 +4,9 @@ library.using([
   "web-site",
   "web-element",
   "./browse-painter",
-  "./clean-up-file-names"],
-  function(WebSite, element, browsePainter, cleanUpFileNames) {
+  "./clean-up-file-names",
+  "./artists"],
+  function(WebSite, element, browsePainter, cleanUpFileNames, artists) {
 
     var site = new WebSite()
 
@@ -19,12 +20,17 @@ library.using([
       element(
         "a.button.light",{
         "href": "/"},
-        "Artists"),
+        "Search"),
       '&nbsp;',
       element(
         "a.button.light",{
         "href": "/clean-up"},
-        "Paintings")])
+        "Paintings"),
+      '&nbsp;',
+      element(
+        "a.button.light",{
+        "href": "/artists"},
+        "Artists")])
 
     browsePainter(
       site,
@@ -34,6 +40,11 @@ library.using([
     cleanUpFileNames(
       site,
       "/clean-up/",
+      nav)
+
+    artists(
+      site,
+      "/artists/",
       nav)
 
     site.start(

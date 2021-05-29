@@ -8,12 +8,13 @@ module.exports = library.export(
   "basic-styles"],
   function(loadPaintings, element, BrowserBridge, basicStyles) {
 
-    var baseBridge = new BrowserBridge()
-
-    basicStyles.addTo(
-      baseBridge)
-
     function artists(site, baseRoute, nav) {
+
+      var baseBridge = new BrowserBridge()
+
+      basicStyles.addTo(
+        baseBridge)
+
       var { painters, paintings } = loadPaintings()
 
       var paintingsByPainter = paintings.reduce(
@@ -27,6 +28,28 @@ module.exports = library.export(
 
       painters.sort()
 
+      var search = baseBridge.defineFunction(
+        function search(query) {
+          var pattern = new RegExp(query, "i")
+          var rows = document.querySelectorAll(
+            ".painter[data-name]")
+          var any = false
+          rows.forEach(
+            function showHidePainter(row) {
+              var name = row.dataset.name
+              console.log("name", name)
+              if (pattern.test(name)) {
+                row.style.display = "block"}
+                any = true
+              else {
+                row.style.display = "none"}})})
+
+      var searchBox = element("input",{
+        "type": "text",
+        "placeholder": "Artist",
+        "onkeyup": search.withArgs(
+          element.value).evalable()})
+
       site.addRoute(
         "get",
         baseRoute,
@@ -35,7 +58,8 @@ module.exports = library.export(
             function(name) {
               var count = paintingsByPainter[name].length
               return element(
-                "li",
+                "li.painter",{
+                  "data-name": name},
                 element.style({
                   "margin": "0.2em 0",
                   'font-weight': count > 2 ? 'bold' : 'normal'}),
@@ -47,6 +71,7 @@ module.exports = library.export(
 
           baseBridge.forResponse(response).send([
             nav,
+            searchBox,
             element(
               "h1",
               painters.length+" Painters"),

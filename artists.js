@@ -5,8 +5,9 @@ module.exports = library.export(
   "./load-paintings",
   "web-element",
   "browser-bridge",
-  "basic-styles"],
-  function(loadPaintings, element, BrowserBridge, basicStyles) {
+  "basic-styles",
+  "make-request"],
+  function(loadPaintings, element, BrowserBridge, basicStyles, makeRequest) {
 
     function artists(site, baseRoute, nav) {
 
@@ -28,6 +29,11 @@ module.exports = library.export(
 
       painters.sort()
 
+      var searchPaintings = baseBridge.defineFunction(
+        function(loadArtist, lightboxElementId, event) {
+          var artistName = event.target.dataset.name
+          console.log('load', artistName)})
+
       var search = baseBridge.defineFunction(
         function search(query) {
           var pattern = new RegExp(query, "i")
@@ -37,18 +43,32 @@ module.exports = library.export(
           rows.forEach(
             function showHidePainter(row) {
               var name = row.dataset.name
-              console.log("name", name)
               if (pattern.test(name)) {
-                row.style.display = "block"}
-                any = true
+                row.style.display = "block"
+                any = true}
               else {
-                row.style.display = "none"}})})
+                row.style.display = "none"}})
+          var buttons = document.getElementById(
+            "query-buttons")
+          buttons.style.display = "block"
+          var searchPaintingsButton = document.getElementById(
+            "search-paintings-button")
+          searchPaintingsButton.href = "/?artist="+encodeURIComponent(query)
+          searchPaintingsButton.innerText = "Find "+query+" paintings"})
 
       var searchBox = element("input",{
         "type": "text",
         "placeholder": "Artist",
         "onkeyup": search.withArgs(
           element.value).evalable()})
+
+      var queryButtons = element(
+        "p",{
+        "id": "query-buttons",
+        "style": "display: none"},
+        element(
+          "a.button",{
+          "id": "search-paintings-button"}))
 
       site.addRoute(
         "get",
@@ -72,9 +92,7 @@ module.exports = library.export(
           baseBridge.forResponse(response).send([
             nav,
             searchBox,
-            element(
-              "h1",
-              painters.length+" Painters"),
-            rows])})}
+            rows,
+            queryButtons])})}
 
     return artists})

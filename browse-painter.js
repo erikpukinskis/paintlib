@@ -118,9 +118,12 @@ module.exports = library.export(
       makeRequest.defineOn(
         baseBridge),
       baseLoadImage],
-      function loadArtist(makeRequest, baseLoadImage, baseRoute, imageDb, event) {
-        event.preventDefault()
-        var artistName = event.target.name.value
+      function loadArtist(makeRequest, baseLoadImage, baseRoute, imageDb, eventOrArtist) {
+        if (typeof eventOrArtist == "string") {
+          var artistName = eventOrArtist
+        } else {
+          eventOrArtist.preventDefault()
+          var artistName = eventOrArtist.target.name.value}
         var path = baseRoute+"painter/"+encodeURIComponent(artistName)
         makeRequest({
           "method": "get",
@@ -131,6 +134,28 @@ module.exports = library.export(
               imageDb,
               0)})})
 
+    var setQueryParam = baseBridge.defineFunction(
+      function setQueryParam(key, value) {
+        var params = new URLSearchParams(
+          document.location.search)
+        params.set(key, value)
+        history.replaceState(
+          null,
+          null,
+          "?"+params.toString())})
+
+    var getQueryParam = baseBridge.defineFunction(
+      function getQueryParam(key, sanitize) {
+        var params = new URLSearchParams(
+          document.location.search)
+        var string = params.get(
+          key)
+        if (sanitize) {
+          return sanitize(string)
+        } else {
+          return string}})
+
+
     function browsePainter(site, baseRoute, nav) {
       site.addRoute(
         "get",
@@ -138,6 +163,9 @@ module.exports = library.export(
         function(request, response) {
           var bridge = baseBridge.forResponse(
             response)
+
+          var name = request.query.artist
+          console.log("artistName", name)
 
           var imageDb = bridge.defineSingleton(
             'imageDb',
@@ -159,13 +187,22 @@ module.exports = library.export(
               0))
 
           bridge.asap([
-            loadImage],
-            function() {
+            loadImage,
+            loadArtist.withArgs(
+              baseRoute,
+              imageDb)],
+            function(loadImage, loadArtist) {
               document.onkeyup = function(event) {
                 if (event.key == "ArrowLeft") {
                   loadImage(-1)
                 } else if (event.key == "ArrowRight") {
-                  loadImage(1)}}})
+                  loadImage(1)}}
+                var artistName = getQueryParam(
+                  "artist")
+                if (artistName) {
+                  debugger
+                  loadArtist(
+                    artistName)}})
 
           var form = element(
             "form",{
@@ -177,6 +214,7 @@ module.exports = library.export(
               "input",{
               "type": "text",
               "name": "name",
+              "value": name,
               "placeholder": "artist name"}))
 
           bridge.send(
@@ -198,8 +236,9 @@ module.exports = library.export(
           getPainterData(
             painterName,
             function(data) {
+              debugger
               response.send(
-                data.value)})})}
+                data)})})}
 
     return browsePainter
 

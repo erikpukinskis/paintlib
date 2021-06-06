@@ -3,7 +3,7 @@
   "dependencies": {
     "browser-bridge": "^0.197.0",
     "web-site": "*",
-    "web-element": "^1.5.0",
+    "web-element": "^1.6.0",
     "basic-styles": "^0.56.0",
     "make-request": "*"
   }

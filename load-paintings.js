@@ -5,6 +5,7 @@ module.exports = library.export(
   "fs",
   "./extract-verified-meta"],
   function(fs, extractVerifiedMeta) {
+
     function loadPaintings() {
       var filenames = fs.readdirSync(
         "./paintings")
@@ -29,7 +30,11 @@ module.exports = library.export(
           return painters},
         new Set())
 
-      return { paintings, painters: Array.from(painters), filenames }}
+      return {
+        paintings,
+        painters: Array.from(
+          painters),
+        filenames }}
 
     function whitelist(filename) {
       if (filename === ".DS_Store") {

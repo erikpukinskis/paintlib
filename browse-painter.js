@@ -6,11 +6,15 @@ module.exports = library.export(
   "web-element",
   "basic-styles",
   "make-request",
-  "./get-painter-data"],
-  function(BrowserBridge, element, basicStyles, makeRequest, getPainterData) {
+  "./get-painter-data",
+  "./spaced",
+  "./state-button"],
+  function(BrowserBridge, element, basicStyles, makeRequest, getPainterData, Spaced, StateButton) {
 
     var baseBridge = new BrowserBridge()
     basicStyles.addTo(baseBridge)
+    Spaced.addTo(baseBridge)
+    StateButton.defineOn(baseBridge)
 
     var FullScreenTopBarLayout = element.template.container(
       "div.layout",
@@ -114,26 +118,6 @@ module.exports = library.export(
         div.style.width = width
         div.style.height = height})
 
-    var loadArtist = baseBridge.defineFunction([
-      makeRequest.defineOn(
-        baseBridge),
-      baseLoadImage],
-      function loadArtist(makeRequest, baseLoadImage, baseRoute, imageDb, eventOrArtist) {
-        if (typeof eventOrArtist == "string") {
-          var artistName = eventOrArtist
-        } else {
-          eventOrArtist.preventDefault()
-          var artistName = eventOrArtist.target.name.value}
-        var path = baseRoute+"painter/"+encodeURIComponent(artistName)
-        makeRequest({
-          "method": "get",
-          "path": path},
-          function(data) {
-            imageDb.images = JSON.parse(data)
-            baseLoadImage(
-              imageDb,
-              0)})})
-
     var setQueryParam = baseBridge.defineFunction(
       function setQueryParam(key, value) {
         var params = new URLSearchParams(
@@ -154,6 +138,44 @@ module.exports = library.export(
           return sanitize(string)
         } else {
           return string}})
+
+    var loadArtist = baseBridge.defineFunction([
+      makeRequest.defineOn(
+        baseBridge),
+      baseLoadImage,
+      setQueryParam],
+      function loadArtist(makeRequest, baseLoadImage, setQueryParam, baseRoute, imageDb, eventOrArtist) {
+        if (typeof eventOrArtist == "string") {
+          var artistName = eventOrArtist
+        } else {
+          console.log("preventing default...")
+          eventOrArtist.preventDefault()
+          var artistName = eventOrArtist.target.name.value}
+
+        var button = document.getElementById(
+          "search-artist-button")
+
+        button.dataset.state = "loading"
+        console.log('loading', artistName)
+        setQueryParam("artist", artistName)
+
+        var path = baseRoute+"painter/"+encodeURIComponent(artistName)
+        makeRequest({
+          "method": "get",
+          "path": path},
+          function(data) {
+            imageDb.images = JSON.parse(data)
+            button.dataset.state = "done"
+            baseLoadImage(
+              imageDb,
+              0)})})
+
+    var handleQueryChange = baseBridge.defineFunction(
+      function handleQueryChange(value) {
+        var button = document.getElementById(
+          "search-artist-button")
+        button.dataset.state = "dirty"
+        console.log("value", value)})
 
 
     function browsePainter(site, baseRoute, nav) {
@@ -200,9 +222,14 @@ module.exports = library.export(
                 var artistName = getQueryParam(
                   "artist")
                 if (artistName) {
-                  debugger
                   loadArtist(
                     artistName)}})
+
+          var submitButton = StateButton(
+            "Search")
+          submitButton.addAttribute(
+            "id",
+            "search-artist-button")
 
           var form = element(
             "form",{
@@ -210,12 +237,17 @@ module.exports = library.export(
                 baseRoute,
                 imageDb,
                 bridge.event).evalable()},
-            element(
-              "input",{
-              "type": "text",
-              "name": "name",
-              "value": name,
-              "placeholder": "artist name"}))
+            Spaced(
+              element(
+                "input",{
+                "type": "text",
+                "name": "name",
+                "value": name || "",
+                "placeholder": "artist name",
+                "onkeypress": handleQueryChange.withArgs(
+                    element.value)
+                    .evalable()}),
+              submitButton))
 
           bridge.send(
             FullScreenTopBarLayout([

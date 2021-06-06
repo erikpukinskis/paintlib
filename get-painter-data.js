@@ -43,7 +43,14 @@ module.exports = library.export(
         headers: {
           "Ocp-Apim-Subscription-Key": process.env.BING_SEARCH_API_SUBSCRIPTION_KEY,
           "Accept": "application/json"}},
-        function(json) {
+        function(json, response) {
+          if (response.statusCode !== 200) {
+            console.error(
+              JSON.stringify(
+                JSON.parse(json),
+                null,
+                4))
+            return}
           var data = JSON.parse(
               json)
           var formatted = JSON.stringify(

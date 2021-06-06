@@ -204,11 +204,8 @@ module.exports = library.export(
             zoomIn.withArgs(
               imageDb))
 
-          bridge.domReady(
-            loadImage.withArgs(
-              0))
 
-          bridge.asap([
+          bridge.domReady([
             loadImage,
             loadArtist.withArgs(
               baseRoute,
@@ -223,7 +220,10 @@ module.exports = library.export(
                   "artist")
                 if (artistName) {
                   loadArtist(
-                    artistName)}})
+                    artistName)}
+                else {
+                  loadImage(
+                    0)}})
 
           var submitButton = StateButton(
             "Search")
@@ -268,7 +268,6 @@ module.exports = library.export(
           getPainterData(
             painterName,
             function(data) {
-              debugger
               response.send(
                 data)})})}
 

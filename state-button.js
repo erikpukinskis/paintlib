@@ -62,25 +62,75 @@ module.exports = library.export(
   "web-element",
   "hourglass"],
   function(element, Hourglass) {
+
+    var CheckMark = element.template(
+      ".check-mark",
+      element.style({
+        "display": "inline-block",
+        "width": "1em",
+        "height": "1em",
+        " .check": {
+          "transform": "rotate(45deg)",
+          "height": "0.7em",
+          "width": "0.3em",
+          "margin-left": "25%",
+          "border-bottom": "0.2em solid white",
+          "border-right": "0.2em solid white"}}),
+      function() {
+        this.addChild(
+          element(
+            ".check"))})
+
     var StateButton = element.template(
       "button.state-button",
       element.style({
+        " .loading-state": {
+          "display": "none"},
+        " .dirty-state": {
+          "display": "none"},
+        " .done-state": {
+          "display": "none"},
+        "[data-state=loading] .loading-state": {
+          "display": "block"},
+        "[data-state=dirty] .dirty-state": {
+          "display": "block"},
+        "[data-state=done] .done-state": {
+          "display": "block"},
+        "[data-state=loading]": {
+          "pointer-events": "none"}
 
-      }),
+      }),{
+      "data-state": "dirty"},
       function(text) {
         this.addChild(
-          ".loading-state",
-          Hourglass(
-            1,
-            "em",
-            "rgba(255,255,255,0.5) transparent"))
+          element(
+            ".loading-state",
+            Hourglass(
+              1,
+              "em",
+              "rgba(255,255,255,0.5) transparent")))
+        this.addChild(
+          element(
+            ".done-state",
+            CheckMark()))
         this.addChild(
           element(
             ".dirty-state",
             text))})
 
     StateButton.defineOn = function(bridge) {
-      Hourglass.defineOn(bridge)}
+      if (bridge.remember(
+        "state-button")) {
+          return }
+      Hourglass.defineOn(
+        bridge)
+      bridge.addToHead(
+        element.stylesheet(
+          StateButton,
+          CheckMark))
+      bridge.remember(
+        "state-button",
+        true)}
 
     return StateButton})
 
@@ -100,7 +150,28 @@ library.define(
     basicStyles.addTo(bridge)
     StateButton.defineOn(bridge)
 
+    var toggleState = bridge.defineFunction(
+      function toggleState(buttonId) {
+        var button = document.getElementById(
+          buttonId)
+        var state = button.dataset.state
+        if (state === "loading") {
+          button.dataset.state = "done"
+        } else if (state === "done") {
+          button.dataset.state = "dirty"
+        } else {
+          button.dataset.state = "loading"
+          setTimeout(
+            function() {
+              button.dataset.state = "done"},
+            2000)}})
+
     var button = StateButton("Hi")
+    button.addAttribute(
+      "onclick",
+      toggleState.withArgs(
+        button.assignId())
+          .evalable())
 
     site.addRoute(
       "get",
